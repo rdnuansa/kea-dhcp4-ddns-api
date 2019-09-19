@@ -1,11 +1,11 @@
 #!/bin/bash
 #
 #####################################
-#									#
-#	KEA-DHCP4-DDNS API Script		#
-#		version 1.0					#
-#	This is experimental service	#
-#									#
+#                                   #
+#     KEA-DHCP4-DDNS API Script     #
+#           version 1.0             #
+#   This is experimental service    #
+#                                   #
 #####################################
 #
 #
@@ -25,15 +25,17 @@ checkCredentials() {
 getHelp() {
 	echo -e "Usage: ./keax [help] <command> [args]\n"
 	echo "The available commands for execution are listed below."
-	echo -e "\nCommands:\n   help \t\t\tDisplay this messages."
-	echo -e "   lease-list \t\t\tList all dhcp lease(s) under ipv4."
+	echo -e "\nCommands:\n   help \t\t\t\tDisplay this messages."
+	echo -e "   lease-list \t\t\t\tList all dhcp lease(s) under ipv4."
 	#echo -e "   config-get \t\tgenerate current config used for kea dhcp ipv4"
-    echo -e "   lease-add [ipv4] [macaddr] \tAssign specific [ipv4] lease to guest with MAC address [macaddr]."
-    echo -e "   lease-del [ipv4] \t\tRemove specific [ipv4] from dhcp lease."
-    echo -e "   lease-delall \t\tRemove/wipe all active dhcp lease ."
-    echo -e "   reload \t\t\treload all kea configurations."
+    echo -e "   lease-add [ipv4] [macaddr] \t\tAssign specific [ipv4] lease to guest with MAC address [macaddr]."
+    echo -e "   lease-del [ipv4] \t\t\tRemove specific [ipv4] from dhcp lease."
+    echo -e "   lease-delall \t\t\tRemove/wipe all active dhcp lease ."
+    echo -e "   reservation-list \t\t\tList all IP reservation for guest's MAC address."
+    echo -e "   reservation-add [ipv4] [macaddr] \tReserve [ipv4] address for specific MAC address [macaddr]."
+    echo -e "   reload \t\t\t\treload all kea configurations."
     #echo -e "   off \t\tforcefully shutdown kea control agent API"
-    echo -e "   version \t\t\tget current kea version."
+    #echo -e "   version \t\t\tget current kea version."
 }	
 
 COMMAND=$1
@@ -64,9 +66,24 @@ case $COMMAND in
 		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d '{ "command": "lease4-wipe","service": ["dhcp4"] }' $KEA_API | python -m json.tool
 		;;
 
-	reload)
+	reservation-list)
+		checkCredentials
+		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d '{ "command": "reservation-get", "service": ["dhcp4"], "arguments": { "subnet-id": "0" } }' $KEA_API | python -m json.tool
+		;;
+
+	reservation-add)
+		checkCredentials
+		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d '{ "command": "reservation-add", "service": ["dhcp4"], "arguments": { "reservation": { "subnet-id": 0, "hw-address": "'$3'", "ip-address": "'$2'" } } }' $KEA_API | python -m json.tool
+		;;
+
+	reservation-del)
 		checkCredentials
 		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d  $KEA_API | python -m json.tool
+		;;
+
+	reload)
+		checkCredentials
+		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d '{ "command": "config-reload" }' $KEA_API | python -m json.tool
 		;;
 
 	*)
