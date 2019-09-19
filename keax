@@ -1,0 +1,76 @@
+#!/bin/bash
+#
+#####################################
+#									#
+#	KEA-DHCP4-DDNS API Script		#
+#		version 1.0					#
+#	This is experimental service	#
+#									#
+#####################################
+#
+#
+## Read authentication for KEA service.
+## To set the credentials please create a file named .credentials on 
+## same directory as this keax script.
+. .credentials
+
+checkCredentials() {
+	if [[ "$USERNAME" == "" || "$PASSWORD" == "" ]]; then
+		echo -e "Username and password are required! \n\nPlease create .credentials file and specify the Username, password and KEA API URL."
+		echo -e "e.g: \nUSERNAME=username \nPASSWORD=password \nKEA_API=http://192.168.1.1:8080/"
+        exit 1;
+    fi
+}
+
+getHelp() {
+	echo -e "Usage: ./keax [help] <command> [args]\n"
+	echo "The available commands for execution are listed below."
+	echo -e "\nCommands:\n   help \t\t\tDisplay this messages."
+	echo -e "   lease-list \t\t\tList all dhcp lease(s) under ipv4."
+	#echo -e "   config-get \t\tgenerate current config used for kea dhcp ipv4"
+    echo -e "   lease-add [ipv4] [macaddr] \tAssign specific [ipv4] lease to guest with MAC address [macaddr]."
+    echo -e "   lease-del [ipv4] \t\tRemove specific [ipv4] from dhcp lease."
+    echo -e "   lease-delall \t\tRemove/wipe all active dhcp lease ."
+    echo -e "   reload \t\t\treload all kea configurations."
+    #echo -e "   off \t\tforcefully shutdown kea control agent API"
+    echo -e "   version \t\t\tget current kea version."
+}	
+
+COMMAND=$1
+
+case $COMMAND in
+	help)
+		getHelp
+		;;
+
+	lease-list)
+		checkCredentials
+		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d '{ "command": "lease4-get-all","service": ["dhcp4"] }' $KEA_API | python -m json.tool
+    	echo "";
+    	;;
+
+    lease-add)
+		checkCredentials
+		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d '{ "command": "lease4-add","service": ["dhcp4"], "arguments": { "ip-address": "'$2'", "hw-address": "'$3'", "valid-lft": 0 } }' $KEA_API | python -m json.tool
+		;;
+
+	lease-del)
+		checkCredentials
+		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d '{ "command": "lease4-del","service": ["dhcp4"], "arguments": { "ip-address": "'$2'" } }' $KEA_API | python -m json.tool
+		;;
+
+	lease-delall)
+		checkCredentials
+		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d '{ "command": "lease4-wipe","service": ["dhcp4"] }' $KEA_API | python -m json.tool
+		;;
+
+	reload)
+		checkCredentials
+		curl -u "$USERNAME:$PASSWORD" -X POST -H "Content-Type: application/json" -s -d  $KEA_API | python -m json.tool
+		;;
+
+	*)
+		echo "Wrong commands!"
+		getHelp
+		;;
+esac
